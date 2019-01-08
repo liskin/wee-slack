@@ -72,6 +72,13 @@ SLACK_API_TRANSLATOR = {
         "mark": "groups.mark",
         "info": "groups.info"
     },
+    "private": {
+        "history": "conversations.history",
+        "join": "conversations.join",
+        "leave": "conversations.leave",
+        "mark": "conversations.mark",
+        "info": "conversations.info",
+    },
     "shared": {
         "history": "conversations.history",
         "join": "conversations.join",
@@ -1440,7 +1447,7 @@ class SlackChannel(SlackChannelCommon):
     def formatted_name(self, style="default", typing=False, **kwargs):
         if typing and config.channel_name_typing_indicator:
             prepend = ">"
-        elif self.type == "group":
+        elif self.type == "group" or self.type == "private":
             prepend = config.group_name_prefix
         elif self.type == "shared":
             prepend = config.shared_name_prefix
@@ -1724,7 +1731,7 @@ class SlackChannel(SlackChannelCommon):
     def update_nicklist(self, user=None):
         if not self.channel_buffer:
             return
-        if self.type not in ["channel", "group", "mpim", "shared"]:
+        if self.type not in ["channel", "group", "mpim", "shared", "private"]:
             return
         w.buffer_set(self.channel_buffer, "nicklist", "1")
         # create nicklists for the current channel if they don't exist
@@ -1894,6 +1901,16 @@ class SlackGroupChannel(SlackChannel):
     #    return prepend + self.slack_name
 
 
+class SlackPrivateChannel(SlackGroupChannel):
+    """
+    A group channel is a private discussion group.
+    """
+
+    def __init__(self, eventrouter, **kwargs):
+        super(SlackPrivateChannel, self).__init__(eventrouter, **kwargs)
+        self.type = "private"
+
+
 class SlackMPDMChannel(SlackChannel):
     """
     An MPDM channel is a special instance of a 'group' channel.
@@ -2042,6 +2059,12 @@ class SlackThreadChannel(SlackChannelCommon):
 
     def get_history(self):
         self.got_history = True
+        if self.parent_message.channel.type == "private":
+            s = SlackRequest(self.team.token, "conversations.replies",
+                    {"channel": self.identifier, "ts": self.parent_message.ts},
+                    team_hash=self.team.team_hash,
+                    channel_identifier=self.identifier)
+            self.eventrouter.receive(s)
         for message in self.parent_message.submessages:
             text = self.render(message)
             self.buffer_prnt(message.sender, text, message.ts)
@@ -2225,11 +2248,12 @@ class SlackMessage(object):
             inviter_id = self.message_json.get('inviter')
             inviter_nick = unfurl_refs("<@{}>".format(inviter_id))
             text += " by invitation from {}".format(inviter_nick)
-        if len(self.submessages) > 0:
+        if self.message_json.get('replies'):
+            self.channel.hash_message(self.ts)
             text += " {}[ Thread: {} Replies: {} ]".format(
                     w.color(config.color_thread_suffix),
-                    self.hash or self.ts,
-                    len(self.submessages))
+                    self.hash,
+                    len(self.message_json['replies']))
         return text
 
     def change_text(self, new_text):
@@ -2410,6 +2434,8 @@ def handle_rtmstart(login_data, eventrouter):
         for item in login_data["channels"]:
             if item["is_shared"]:
                 channels[item["id"]] = SlackSharedChannel(eventrouter, **item)
+            elif item["is_private"]:
+                channels[item["id"]] = SlackPrivateChannel(eventrouter, **item)
             else:
                 channels[item["id"]] = SlackChannel(eventrouter, **item)
 
@@ -2520,6 +2546,14 @@ def handle_history(message_json, eventrouter, **kwargs):
         process_message(message, eventrouter, **kwargs)
 
 
+def handle_conversationsreplies(message_json, eventrouter, **kwargs):
+    request_metadata = pickle.loads(message_json["wee_slack_request_metadata"])
+    kwargs['team'] = eventrouter.teams[request_metadata.team_hash]
+    kwargs['channel'] = kwargs['team'].channels[request_metadata.channel_identifier]
+    for message in message_json["messages"]:
+        process_message(message, eventrouter, **kwargs)
+
+
 def handle_conversationsmembers(members_json, eventrouter, **kwargs):
     request_metadata = pickle.loads(members_json['wee_slack_request_metadata'])
     team = eventrouter.teams[request_metadata.team_hash]
@@ -2627,6 +2661,9 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
         subtype_functions[subtype](message_json, eventrouter, channel, team)
     else:
         message = SlackMessage(message_json, team, channel)
+        if store:
+            channel.store_message(message, team)
+
         text = channel.render(message)
         dbg("Rendered message: %s" % text)
         dbg("Sender: %s (%s)" % (message.sender, message.sender_plain))
@@ -2639,9 +2676,6 @@ def process_message(message_json, eventrouter, store=True, **kwargs):
         channel.buffer_prnt(prefix, text, message.ts,
                 tag_nick=message.sender_plain, **kwargs)
         channel.unread_count_display += 1
-
-        if store:
-            channel.store_message(message, team)
         dbg("NORMAL REPLY {}".format(message_json))
 
 
