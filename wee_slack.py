@@ -42,7 +42,7 @@ SCRIPT_DESC = "Extends weechat for typing notification/search/etc on slack.com"
 BACKLOG_SIZE = 200
 SCROLLBACK_SIZE = 500
 
-RECORD_DIR = "/tmp/weeslack-debug"
+RECORD_DIR = os.getenv("HOME") + "/.weechat/slack-debug"
 
 SLACK_API_TRANSLATOR = {
     "channel": {
