@@ -49,34 +49,34 @@ SLACK_API_TRANSLATOR = {
         "history": "conversations.history",
         "join": "conversations.join",
         "leave": "conversations.leave",
-        "mark": "channels.mark",
+        "mark": "conversations.mark",
         "info": "conversations.info",
     },
     "im": {
         "history": "conversations.history",
         "join": "conversations.open",
         "leave": "conversations.close",
-        "mark": "im.mark",
+        "mark": "conversations.mark",
     },
     "mpim": {
         "history": "conversations.history",
         "join": "mpim.open",  # conversations.open lacks unread_count_display
         "leave": "conversations.close",
-        "mark": "mpim.mark",
+        "mark": "conversations.mark",
         "info": "conversations.info",
     },
     "group": {
         "history": "conversations.history",
         "join": "conversations.join",
         "leave": "conversations.leave",
-        "mark": "groups.mark",
+        "mark": "conversations.mark",
         "info": "conversations.info"
     },
     "shared": {
         "history": "conversations.history",
         "join": "conversations.join",
         "leave": "conversations.leave",
-        "mark": "channels.mark",
+        "mark": "conversations.mark",
         "info": "conversations.info",
     },
     "thread": {
