@@ -46,31 +46,31 @@ RECORD_DIR = "/tmp/weeslack-debug"
 
 SLACK_API_TRANSLATOR = {
     "channel": {
-        "history": "channels.history",
+        "history": "conversations.history",
         "join": "conversations.join",
         "leave": "conversations.leave",
         "mark": "channels.mark",
-        "info": "channels.info",
+        "info": "conversations.info",
     },
     "im": {
-        "history": "im.history",
+        "history": "conversations.history",
         "join": "conversations.open",
         "leave": "conversations.close",
         "mark": "im.mark",
     },
     "mpim": {
-        "history": "mpim.history",
+        "history": "conversations.history",
         "join": "mpim.open",  # conversations.open lacks unread_count_display
         "leave": "conversations.close",
         "mark": "mpim.mark",
-        "info": "groups.info",
+        "info": "conversations.info",
     },
     "group": {
-        "history": "groups.history",
+        "history": "conversations.history",
         "join": "conversations.join",
         "leave": "conversations.leave",
         "mark": "groups.mark",
-        "info": "groups.info"
+        "info": "conversations.info"
     },
     "shared": {
         "history": "conversations.history",
