@@ -1432,7 +1432,7 @@ class SlackChannel(SlackChannelCommon):
     def formatted_name(self, style="default", typing=False, **kwargs):
         if typing and config.channel_name_typing_indicator:
             prepend = ">"
-        elif self.type == "group" or self.type == "private":
+        elif self.type == "group":
             prepend = config.group_name_prefix
         elif self.type == "shared":
             prepend = config.shared_name_prefix
